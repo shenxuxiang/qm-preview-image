@@ -1,0 +1,34 @@
+.modal-mask {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.5);
+  .hide-animation();
+}
+.modal-mask.open{
+  .show-animation();
+}
+.modal-content {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  .hide-animation();
+}
+.modal-content.open{
+  .show-animation();
+}
+
+.hide-animation {
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+.show-animation {
+  opacity: 1;
+  visibility: visible;
+}
