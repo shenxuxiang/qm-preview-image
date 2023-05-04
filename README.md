@@ -35,7 +35,8 @@ export default function App() {
         open={visible}
         hasPerformance
         // 如果没有缩略图和高清图的区分，只要提供 imgs 就行了。
-        // previewImgs 表示缩略图的集合，如果提供了 previewImgs，请将 hasPerformance 设置为 true。
+        // imgs 与 previewImgs 长度需要保持一致。
+        // previewImgs 表示缩略图的集合，默认取 imgs。如果提供了 previewImgs，请将 hasPerformance 设置为 true。
         previewImgs={imgs}
         onClose={handleClose}
       />
@@ -53,5 +54,5 @@ export default function App() {
 | index            | which image to preview by default              | number   | 0               |
 | imgs             | picture collection                             | string[] | []              |
 | previewImgs      | provide a collection of thumbnails             | string[] | imgs            |
-| hasPerformance   | indicator style color                          | boolean  | false           |
+| hasPerformance   | start image performance optimization           | boolean  | false           |
 | onClose          | close the component                            | function | -               |
