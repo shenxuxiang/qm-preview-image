@@ -5,7 +5,9 @@ import legacy from '@vitejs/plugin-legacy';
 import presetEnv from 'postcss-preset-env';
 import libcss from 'vite-plugin-libcss';
 export default defineConfig({
-  plugins: [libcss()],
+  plugins: [
+    libcss()
+  ],
   resolve: {
     extensions: [ '.tsx', '.ts', '.jsx', '.js' ],
     alias: {
@@ -63,6 +65,7 @@ export default defineConfig({
         },
       },
     },
+    sourcemap: true,
   },
 })
 

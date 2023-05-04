@@ -1,6 +1,6 @@
 {
   "name": "qm-preview-image",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "type": "module",
   "files": [
     "lib"
@@ -14,6 +14,7 @@
       "require": "./lib/qm-preview-image.cjs"
     }
   },
+  "homepage": "https://github.com/shenxuxiang/qm-preview-image",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
