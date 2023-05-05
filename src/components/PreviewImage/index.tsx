@@ -1,15 +1,16 @@
 import { memo, useEffect, useRef } from 'react';
-import classes from './index.module.less';
 import Modal from '@/components/Modal';
-import useReducer from './useReducer';
 import Img from '@/components/Image';
+import Spin from '@/components/Spin';
+import useReducer from './useReducer';
+import classes from './index.module.less';
 import "@/assets/font/iconfont.css";
 
 // 缩略图中每一个图片的宽度
 const ITEM_WIDTH = 120;
 const REG_TRANSFORMX = /translateX\(([\-.0-9]*)px\)/;
 const REG_SCALE = /scale\(([\-.0-9]*)\, ([\-.0-9]*)\)/;
-const REG_ROTATEZ = /rotateZ\(([\-.0-9]*)deg\)/
+const REG_ROTATEZ = /rotateZ\(([\-.0-9]*)deg\)/;
 
 // 获取目标元素的 Transform 样式
 function getTransformProperties(element: HTMLElement) {
@@ -24,16 +25,19 @@ function initialState() {
     currentIndex: 0,
     isEndPage: false,
     isStartPage: false,
+    imageURL: '',
+    spinning: false,
   };
-}
 
+}
 type IProps = {
   onClose: () => void;
   open: boolean;
   imgs: string[];
+  index?: number;
+  pageSize?: number;
   previewImgs?: string[];
   hasPerformance?: boolean;
-  index?: number;
 }
 
 /**
@@ -42,98 +46,104 @@ type IProps = {
  * @param { imgs }           图片列表
  * @param { index }          默认展示第几个图片，默认第一个
  * @param { onClose }        关闭组件的方法
+ * @param { pageSize }       指定缩略图展示列表一页展示多少张图片
  * @param { previewImgs }    缩略图展示列表
  * @param { hasPerformance } 是否启动IMG性能优化方案
  */
 function PreviewImage(props: IProps) {
-  const { onClose, open, imgs, previewImgs = imgs, index = 0, hasPerformance } = props;
   const [ state, setState ] = useReducer(initialState);
-  const { currentIndex, isStartPage, isEndPage } = state;
+  const { currentIndex, isStartPage, isEndPage, imageURL, spinning } = state;
+  const { onClose, open, imgs, previewImgs = imgs, index = 0, hasPerformance = false, pageSize = 9 } = props;
 
   const imgRef = useRef<any>();
   // 滑块容器
   const sliderWrapperRef = useRef<any>();
   // 滑块
   const sliderRef = useRef<any>();
-  const pageSizeRef = useRef(0);
-  const totalRef = useRef(0);
+  const totalSizeRef = useRef(0);
   const isMounted = useRef(false);
-  const largeImgListRef = useRef(imgs);
+  // 高清图
+  const HDPictureListRef = useRef(imgs);
+  // 缩略图
+  const thumbnailListRef = useRef(previewImgs);
 
   useEffect(() => {
-    function handleResize() {
-      if (!sliderWrapperRef.current) return;
-      const { clientWidth } = sliderWrapperRef.current;
-      const mode = clientWidth % ITEM_WIDTH;
-      if (mode > 110) {
-        pageSizeRef.current = Math.ceil(clientWidth / ITEM_WIDTH);
-      } else {
-        pageSizeRef.current = Math.floor(clientWidth / ITEM_WIDTH);
-      }
-      totalRef.current = imgs.length;
-      largeImgListRef.current = imgs;
+    totalSizeRef.current = imgs.length;
+    HDPictureListRef.current = imgs;
+    thumbnailListRef.current = previewImgs;
+  }, [imgs, previewImgs]);
 
-      if (totalRef.current <= pageSizeRef.current) setState({ isEndPage: true, isStartPage: true });
-    }
-
+  useEffect(() => {
     if (open) {
-      handleResize();
       isMounted.current = true;
-      window.addEventListener('resize', handleResize, false);
+      // 每当重新打开组件时，去除图片上的镜像、放大、缩小、旋转
+      imgRef.current.style.transform = `scale(1, 1) rotateZ(0deg)`;
     }
-    return () => {
-      window.removeEventListener('resize', handleResize, false);
-    }
-  }, [open, imgs, previewImgs]);
+  }, [open]);
 
   useEffect(() => {
     if (open) {
       let currentIndex = index;
       if (index <= 0) {
         currentIndex = 0;
-      } else if (index >= totalRef.current) {
-        currentIndex = totalRef.current - 1;
+      } else if (index >= totalSizeRef.current) {
+        currentIndex = totalSizeRef.current - 1;
       }
       sliderAnimation(currentIndex, 0);
 
       setState({
         currentIndex,
-        isStartPage: currentIndex < Math.ceil(pageSizeRef.current / 2) || totalRef.current <= pageSizeRef.current,
-        isEndPage: currentIndex > totalRef.current - 1 - Math.ceil(pageSizeRef.current / 2) || totalRef.current <= pageSizeRef.current,
+        isStartPage: currentIndex < Math.ceil(pageSize / 2) || totalSizeRef.current <= pageSize,
+        isEndPage: currentIndex > totalSizeRef.current - 1 - Math.ceil(pageSize / 2) || totalSizeRef.current <= pageSize,
       });
     }
   }, [open, index]);
 
+  // 注意这里我将 open 添加到依赖项，其目的是为了防止初始化时 imageURL 没有取到值时，在 open 变化时重新取值。
   useEffect(() => {
-    if (!hasPerformance) return;
+    const hd = HDPictureListRef.current[currentIndex];
+    // 如果高清图不存在，则不执行后续的逻辑
+    if (!hd) return;
+    // 如果当前 IMG 节点上展示的图像就是目标图像，也同样不执行后续逻辑
+    if (imgRef.current?.src?.endsWith(hd)) return;
 
-    const largeImageUrl = largeImgListRef.current[currentIndex];
-    const img = new Image();
-    img.src = largeImageUrl;
-    img.onload = () => {
-      if (imgRef.current) imgRef.current.src = largeImageUrl;
+    // 是否执行 IMG 优化，优化方案则是先加载缩略图，等高清图加载完成后再添加到 IMG 节点展示。
+    // 否则就是直接展示高清图。
+    if (!hasPerformance) {
+      setState({ imageURL: hd });
+      return;
     }
+
+    setState({ spinning: true, imageURL: thumbnailListRef.current[currentIndex] });
+
+    const img = new Image();
+    img.src = hd;
+    img.onload = () => setState({ spinning: false, imageURL: hd });
 
     return () => {
-      img.onload = null;
+      if (img) img.onload = null;
     }
-  }, [currentIndex]);
+  }, [open, currentIndex]);
 
   // 动画效果
   const sliderAnimation = (index: number, duration = 300) => {
     if (!sliderRef.current || !sliderWrapperRef.current) return;
 
-    if (totalRef.current <= pageSizeRef.current) return;
+    if (totalSizeRef.current <= pageSize) {
+      sliderRef.current.style.cssText = `transform: translateX(0px); transition: transform 0ms ease`;
+      return;
+    }
 
-    const halfMaxSize = Math.ceil(pageSizeRef.current / 2);
+    const halfMaxSize = Math.ceil(pageSize / 2);
     let offsetX = 0;
     if (index + 1 <= halfMaxSize) {
       offsetX = 0;
-    } else if (index + 1 > totalRef.current - halfMaxSize) {
-      offsetX = totalRef.current * ITEM_WIDTH - sliderWrapperRef.current.clientWidth;
+    } else if (index + 1 > totalSizeRef.current - halfMaxSize) {
+      offsetX = totalSizeRef.current * ITEM_WIDTH - sliderWrapperRef.current.clientWidth;
     } else {
       offsetX = index * ITEM_WIDTH - sliderWrapperRef.current.clientWidth / 2 + ITEM_WIDTH / 2;
     }
+
     const cssText = `transform: translateX(${offsetX * -1}px); transition: transform ${duration}ms ease`;
     sliderRef.current.style.cssText = cssText;
   }
@@ -147,23 +157,23 @@ function PreviewImage(props: IProps) {
       sliderAnimation(count);
       return {
         currentIndex: count,
-        isStartPage: count < Math.ceil(pageSizeRef.current / 2),
-        isEndPage: count > totalRef.current - 1 - Math.ceil(pageSizeRef.current / 2),
+        isStartPage: count < Math.ceil(pageSize / 2),
+        isEndPage: count > totalSizeRef.current - 1 - Math.ceil(pageSize / 2),
       };
     });
   };
 
   const handleNextItem = () => {
-    if (currentIndex >= totalRef.current - 1) return;
+    if (currentIndex >= totalSizeRef.current - 1) return;
     imgRef.current.style.transform = `scale(1, 1) rotateZ(0deg)`;
     setState((prev) => {
       let count = prev.currentIndex + 1;
-      count = count >= totalRef.current ? totalRef.current - 1 : count;
+      count = count >= totalSizeRef.current ? totalSizeRef.current - 1 : count;
       sliderAnimation(count);
       return {
         currentIndex: count,
-        isStartPage: count < Math.ceil(pageSizeRef.current / 2),
-        isEndPage: count > totalRef.current - 1 - Math.ceil(pageSizeRef.current / 2),
+        isStartPage: count < Math.ceil(pageSize / 2),
+        isEndPage: count > totalSizeRef.current - 1 - Math.ceil(pageSize / 2),
       };
     });
   };
@@ -174,8 +184,8 @@ function PreviewImage(props: IProps) {
     sliderAnimation(index);
     setState({
       currentIndex: index,
-      isStartPage: index < Math.ceil(pageSizeRef.current / 2) || totalRef.current <= pageSizeRef.current,
-      isEndPage: index > totalRef.current - 1 - Math.ceil(pageSizeRef.current / 2) || totalRef.current <= pageSizeRef.current,
+      isStartPage: index < Math.ceil(pageSize / 2) || totalSizeRef.current <= pageSize,
+      isEndPage: index > totalSizeRef.current - 1 - Math.ceil(pageSize / 2) || totalSizeRef.current <= pageSize,
     });
   }
   // 上一页，向右滚动一屏
@@ -184,7 +194,7 @@ function PreviewImage(props: IProps) {
 
     const transform = sliderRef.current.style.transform;
     const [, translateX = 0] = REG_TRANSFORMX.exec(transform) ?? [];
-    let offsetX = Number(translateX) + pageSizeRef.current * ITEM_WIDTH;
+    let offsetX = Number(translateX) + pageSize * ITEM_WIDTH;
     if (offsetX >= 0) {
       offsetX = 0;
       setState({ isStartPage: true, isEndPage: false });
@@ -201,9 +211,9 @@ function PreviewImage(props: IProps) {
 
     const transform = sliderRef.current.style.transform;
     const { clientWidth } = sliderWrapperRef.current;
-    const maxOffsetX = totalRef.current * ITEM_WIDTH - clientWidth;
+    const maxOffsetX = totalSizeRef.current * ITEM_WIDTH - clientWidth;
     const [, translateX = 0] = REG_TRANSFORMX.exec(transform) ?? [];
-    let offsetX = Number(translateX) - pageSizeRef.current * ITEM_WIDTH;
+    let offsetX = Number(translateX) - pageSize * ITEM_WIDTH;
     if (offsetX <= -maxOffsetX) {
       offsetX = -maxOffsetX;
       setState({ isEndPage: true, isStartPage: false });
@@ -283,26 +293,34 @@ function PreviewImage(props: IProps) {
           >
             <i className="qm-iconfont qm-icon-arrow-left-bold" style={{ fontSize: 60 }}/>
           </div>
-          {/* 图片预览部分 */}
-          <div className={classes.bodyContent}>
-            <img
-              ref={imgRef}
-              alt="预览图片"
-              src={previewImgs[currentIndex]}
-              className={classes.previewImg}
-              style={{ transform: 'scale(1, 1) rotateZ(0)' }}
-            />
-          </div>
+          <Spin spinning={spinning}>
+            {/* 图片预览部分 */}
+            <div className={classes.bodyContent}>
+              <img
+                ref={imgRef}
+                alt="预览图片"
+                src={imageURL}
+                className={classes.previewImg}
+                style={{ transform: 'scale(1, 1) rotateZ(0)' }}
+              />
+            </div>
+          </Spin>
           {/* 下一张 */}
           <div
             onClick={handleNextItem}
-            className={`${classes.nextButton}${currentIndex >= totalRef.current - 1 ? ' ' + classes.disabled : ''}`}
+            className={`${classes.nextButton}${currentIndex >= totalSizeRef.current - 1 ? ' ' + classes.disabled : ''}`}
           >
             <i className="qm-iconfont qm-icon-arrow-right-bold" style={{ fontSize: 60 }}/>
           </div>
         </div>
         {/* 底部滑块 */}
-        <div className={classes.foot}>
+        <div
+          className={classes.foot}
+          style={{
+            width: previewImgs?.length * ITEM_WIDTH + 68,
+            maxWidth: pageSize * ITEM_WIDTH + 68,
+          }}
+        >
           {/* 上一页 */}
           <div className={`${classes.footPrevButton}${isStartPage ? ' ' + classes.disabled : ''}`} onClick={handlePrevPage}>
             <i className="qm-iconfont qm-icon-arrow-left-bold" style={{ fontSize: 30 }}/>

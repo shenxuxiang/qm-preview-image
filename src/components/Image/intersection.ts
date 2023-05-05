@@ -17,17 +17,17 @@ class IntersectionImage {
 
   observeImage = (element: Element | Element[]) => {
     if (Array.isArray(element)) {
-      element.forEach(item => this.intersection.observe(item));
+      element.forEach(item => item && this.intersection.observe(item));
     } else {
-      this.intersection.observe(element);
+      element && this.intersection.observe(element);
     }
   }
 
   unobserveImage = (element: Element | Element[]) => {
     if (Array.isArray(element)) {
-      element.forEach(item => this.intersection.unobserve(item));
+      element.forEach(item => item && this.intersection.unobserve(item));
     } else {
-      this.intersection.unobserve(element);
+      element && this.intersection.unobserve(element);
     }
   }
 
