@@ -30,15 +30,14 @@ import img28 from "@/assets/28.webp";
 import img29 from "@/assets/29.webp";
 import img30 from "@/assets/30.jpg";
 
-import PreviewImage from '@/components/PreviewImage';
-// import PreviewImage from 'qm-preview-image';
+// import PreviewImage from '@/components/PreviewImage';
+import PreviewImage from '../lib/qm-preview-image';
 
 const imgs = [
   img1, img2, img3, img4, img5, img6, img7, img8, img9, img10,
   img11, img12, img13, img14, img15, img16, img17, img18, img19, img20,
   img21, img22, img23, img24, img25, img26, img27, img28, img29, img30,
 ];
-let count = 0;
 
 function App() {
   const [ open, setOpen ] = useState(false);
@@ -49,19 +48,13 @@ function App() {
       <div
         style={{ width: 120, height: 32, border: '1px solid #ddd' }}
         onClick={() => {
-          count++;
           setOpen(true);
-          if (count > 1) {
-            setList(() => imgs.slice(0, 7));
-          } else {
-            setList(imgs);
-          }
         }}
       >
         hello world
       </div>
 
-      <PreviewImage index={4} pageSize={9} open={open} imgs={list} onClose={() => setOpen(false)} />
+      <PreviewImage index={4} pageSize={9} open={open} imgs={imgs} previewImgs={imgs} onClose={() => setOpen(false)} hasPerformance/>
     </div>
   );
 }

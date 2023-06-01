@@ -68,7 +68,7 @@ export default defineConfig(({ mode }) => {
               return "image/[name]-[hash][extname]";
             } else if (/\.(woff2|woff|eot|ttf)$/.test(name)) {
               return "font/[name]-[hash][extname]";
-            } else if (/\.css$/) {
+            } else if (/\.css$/.test(name)) {
               return "css/[name]-[hash][extname]";
             } else {
               return "[ext]/[name]-[hash][extname]";
@@ -91,4 +91,3 @@ export default defineConfig(({ mode }) => {
     }
   };
 })
- 

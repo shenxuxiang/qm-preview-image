@@ -27,5 +27,5 @@
       "@/*": [ "./src/*" ]
     },
   },
-  "include": ["./src/components/", "./src/vite-env.d.ts"],
+  "include": ["./src/components/PreviewImage/index.tsx", "./src/vite-env.d.ts"],
 }

@@ -1,17 +1,19 @@
 {
   "name": "qm-preview-image",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "type": "module",
   "files": [
     "lib"
   ],
-  "main": "./lib/qm-preview-image.cjs",
+  "keywords": ["preview images", "picture preview"],
+  "description": "picture preview",
+  "main": "./lib/qm-preview-image.umd.cjs",
   "module": "./lib/qm-preview-image.js",
   "types": "./lib/index.d.ts",
   "exports": {
     ".": {
       "import": "./lib/qm-preview-image.js",
-      "require": "./lib/qm-preview-image.cjs"
+      "require": "./lib/qm-preview-image.umd.cjs"
     }
   },
   "homepage": "https://github.com/shenxuxiang/qm-preview-image",
@@ -20,10 +22,6 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "build-lib": "vite build --config vite.config.lib.ts && tsc -p tsconfig.lib.json"
-  },
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@types/node": "^18.16.0",
